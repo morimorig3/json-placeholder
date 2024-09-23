@@ -8,12 +8,6 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 )
 
-type Todo struct {
-	Id          int    `json:"id"`
-	Task        string `json:"task"`
-	IsCompleted bool   `json:"isCompleted"`
-}
-
 func main() {
 	e := echo.New()
 
@@ -27,25 +21,28 @@ func main() {
 	// Error Handle
 	e.HTTPErrorHandler = customHTTPErrorHandler
 
-	e.Logger.Fatal(e.Start(":8080"))
+	e.Logger.Fatal(e.Start(":10000"))
 }
 
 func createTodoHandler(c echo.Context) error {
 	p := c.Param("count")
 	i, err := strconv.Atoi(p)
+	todoList := TodoList{
+		TodoList: []Todo{},
+	}
 
 	// 数値以外のものが渡された場合エラー
 	if err != nil {
 		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, "{}")
+		return c.JSON(http.StatusInternalServerError, todoList.TodoList)
 	}
 
 	// 100件以上エラー
 	if i > 100 {
-		return c.JSON(http.StatusInternalServerError, "{}")
+		return c.JSON(http.StatusInternalServerError, todoList.TodoList)
 	}
-	todoList := createTodoList(i)
-	return c.JSON(http.StatusOK, todoList)
+	todoList.List(i)
+	return c.JSON(http.StatusOK, todoList.TodoList)
 }
 
 func customHTTPErrorHandler(err error, c echo.Context) {
@@ -54,20 +51,9 @@ func customHTTPErrorHandler(err error, c echo.Context) {
 		code = he.Code
 	}
 	c.Logger().Error(err)
-	if err := c.JSON(code, "{}"); err != nil {
+	if err := c.JSON(code, TodoList{
+		TodoList: []Todo{},
+	}.TodoList); err != nil {
 		c.Logger().Error(err)
 	}
-}
-
-func createTodoList(cnt int) []Todo {
-	todoList := make([]Todo, cnt)
-	for i, _ := range todoList {
-		newTodo := Todo{
-			Id:          i,
-			Task:        "タスク No." + strconv.Itoa(i),
-			IsCompleted: false,
-		}
-		todoList[i] = newTodo
-	}
-	return todoList
 }
